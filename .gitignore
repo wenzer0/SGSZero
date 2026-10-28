@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# 训练产物（大文件不入库）
+checkpoints/
+*.pth
+*.ckpt
+logs/
+metrics/
+
+# 原始数据集（只传样例，不传全量）
+data/*.jsonl
+data/*.json
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 无名杀本地缓存
+cache/
+*.bak
