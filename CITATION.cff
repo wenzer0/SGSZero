@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite the paper below."
+type: software
+title: "SGSZero"
+abstract: "A from-scratch training pipeline for a Sanguosha decision-making agent: a compact Transformer trained with privileged information distilled from a handcrafted rule engine, deployable on consumer CPUs."
+authors:
+  - family-names: Wen
+    given-names: Evan
+    orcid: "https://orcid.org/0009-0005-7254-8002"
+    affiliation: "Independent Researcher"
+repository-code: "https://github.com/wenzer0/SGSZero"
+url: "https://github.com/wenzer0/SGSZero"
+license: GPL-3.0
+keywords:
+  - Sanguosha
+  - card game AI
+  - privileged information
+  - knowledge distillation
+  - compact neural networks
+  - game AI
+preferred-citation:
+  type: article
+  title: "SGSzero: Training a Compact Sanguosha Agent via Privileged Rule-Based Supervision"
+  authors:
+    - family-names: Wen
+      given-names: Evan
+      orcid: "https://orcid.org/0009-0005-7254-8002"
+      affiliation: "Independent Researcher"
+  year: 2026
+  doi: "10.5281/zenodo.23828678"
+  url: "https://doi.org/10.5281/zenodo.23828678"
