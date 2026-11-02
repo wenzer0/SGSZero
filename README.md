@@ -1,122 +1,114 @@
 # SGSZero
 
-从零训练的三国杀出牌 AI。1.76M 参数，CPU 实时推理，出牌决策准确率 **80.9%**。
+A Sanguosha agent trained from scratch. 1.76M parameters, CPU inference in milliseconds, **80.9%** accuracy on play/pass decisions.
+
+**English** | [中文](README.zh-CN.md)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23828678.svg)](https://doi.org/10.5281/zenodo.23828678)
 
-| 项目 | 数据 |
+| | |
 |---|---|
-| 任务 | 出牌阶段判断「出还是不出」 |
-| 准确率 | **80.9%**（多数类基线 74.4%） |
-| 模型 | 1,760,527 参数 / 6.72 MB |
-| 推理 | CPU，毫秒级，无需 GPU |
-| 训练 | 40 epoch / 70 秒 / 单张 RTX 4060 |
-| 数据 | 13,536 条自采对局记录，零人工标注 |
+| **Task** | Play or pass, at the play phase |
+| **Accuracy** | **80.9%** (majority baseline 74.4%) |
+| **Model** | 1,760,527 parameters / 6.72 MB |
+| **Inference** | CPU, milliseconds, no GPU required |
+| **Training** | 40 epochs / 70 s / a single RTX 4060 |
+| **Data** | 13,536 self-collected games, zero human labels |
 
-[预印本](https://doi.org/10.5281/zenodo.23828678) · [论文 PDF](paper/main.pdf) · [复现](#复现)
+[Preprint](https://doi.org/10.5281/zenodo.23828678) · [PDF](paper/main.pdf) · [Reproduce](#reproduce)
 
 ---
 
-## 为什么做这个
+## Why
 
-三国杀有几百个武将技能、连锁结算、隐藏手牌，在卡牌游戏里算复杂的一类，但至今没有一个开源的决策 AI。
+Sanguosha has several hundred hero skills, chained effect resolution, and hidden hands — among the more complex card games — yet no open decision-making agent exists for it.
 
-名字致敬 [DouZero](https://github.com/kwai/DouZero)——斗地主从零开始。这次轮到三国杀了。
+The name is a nod to [DouZero](https://github.com/kwai/DouZero): zero human data for DouDizhu. This time it is Sanguosha.
 
-## 这个项目是什么
+## What this is
 
-一条完整的管线，从采集到部署：
+A pipeline from collection to deployment:
 
-1. **采集** — `scripts/bot.js` 注入[无名杀](https://github.com/libnoname/noname)，让内置强 AI（10,966 行手写规则）自己跟自己打，逐手记录「局面 → 决策」。
-2. **训练** — 局面编码成 561 个 token 的序列，喂给 3 层 Transformer，学「这个局面该不该出牌」。
-3. **蒸馏** — 规则 AI 会给每张牌打分，这个分数玩家看不到，但训练时作为特权信号监督一个辅助头，部署时丢掉。
-4. **部署** — 1.76M 参数，CPU 毫秒级出牌，不需要 GPU。
+1. **Collect** — `scripts/bot.js` injects into [Noname](https://github.com/libnoname/noname), letting its built-in rule engine (10,966 lines of hand-written rules) play itself, logging every (state, decision) pair.
+2. **Train** — each state becomes a 561-token sequence, fed to a 3-layer Transformer that learns "should I play a card here?"
+3. **Distill** — the rule engine scores every card in hand. Players cannot see those scores, but training uses them to supervise an auxiliary head that is discarded before deployment.
+4. **Deploy** — 1.76M parameters, millisecond inference on CPU.
 
-## 当前进度
+## Results
 
-- [x] 数据采集管线：bot.js 注入 + 强 AI 自对弈，决策样本落盘
-- [x] Tokenizer + SFT 训练：**出牌决策准确率 80.9%**
-- [ ] 自对弈 PPO（方案已定稿）
-- [ ] MCTS 阶段（可选加分项）
+Task A: decide whether to play a card or pass at the play phase.
 
-## 结果
-
-任务 A：出牌阶段判断"出还是不出"。
-
-| 版本 | 输入 | 验证集 | 准确率 | 说明 |
+| Version | Input | Val | Accuracy | Note |
 |---|---|---|---|---|
-| V5 | 全状态 + 规则 AI 估值 | 819 | 83.9% | ⚠️ 部署时崩溃到 35.6% |
-| V6 | 仅玩家可见信息 | 819 | 78.0–78.4% | 去掉特权信息后的真实水平 |
-| V7 | 可见信息 + 价值头 | 819 | 80.8–81.8% | LUPI 补回大部分差距 |
-| **V8** | **全套可见字段 + 价值头** | 340 | **80.6–80.9%** | 字段最全 |
-| — | 多数类基线 | 340 | 69.2% | |
+| V5 | Full state + engine valuations | 819 | 83.9% | Collapses to 35.6% at deployment |
+| V6 | Observable-only | 819 | 78.0–78.4% | True level without privileged input |
+| V7 | Observable + value head | 819 | 80.8–81.8% | LUPI recovers most of the gap |
+| **V8** | **All observable fields + value head** | 340 | **80.6–80.9%** | Most complete feature set |
+| — | Majority baseline | 340 | 74.4% | |
 
-**几个值得记的发现**：
+**Three findings worth keeping:**
 
-- **模型不是瓶颈，数据才是。** 超参扫了 7 组，全部卡在 72–73%；数据量 +7.6%，准确率跳了 5.3 个点。
-- **数据质量 > 数据量。** 1.1 万条字段完整的记录，打平 3 万条混合数据（约 2.7 倍）。
-- **91% 的错误是"五五开"的边界犹豫**，不是理解错了局面；高置信预测（≥95%）的实际正确率是 98.0%。
-- **平均值掩盖了一个坑**：手里没有【杀】的时候，模型只比瞎猜强 2.9 个点。加上价值头之后变成 +19.6。
+- **Capacity is not the bottleneck; data is.** Seven hyper-parameter configurations all plateaued at 72–73%. A 7.6% increase in data moved accuracy by 5.3 points.
+- **Data quality beats data quantity.** 11k records with the complete feature set matched 30k mixed records (roughly 2.7×).
+- **Averages hide local failures.** With no attack card in hand, the model was only 2.9 points above the majority baseline. The value head lifts that to +19.6.
 
-## 方法：为什么是特权信息
+## Method: why privileged information
 
-规则引擎知道每张牌值几分，玩家不知道，部署时也没有。直接把这个数字喂给模型，它会学会"读数字"而不是"打牌"——V5 就是这样崩的：离线 83.9%，上线 35.6%。
+The rule engine knows what each card is worth. Players do not, and neither does a deployed model. Feeding those numbers in as features teaches the model to read the number instead of the game — which is exactly how V5 collapsed from 83.9% to 35.6%.
 
-所以改成 LUPI（Learning Using Privileged Information）的做法：
+So we use LUPI (Learning Using Privileged Information) instead:
 
 ```
-训练：可见信息 → 编码器 → 决策头（出/不出）
-                    └→ 价值头（每张牌的估值分桶，13 类）
-部署：可见信息 → 编码器 → 决策头        （价值头丢掉）
+train:   observable state → encoder → decision head (play/pass)
+                                   └→ value head (per-card utility, 13 bins)
+deploy:  observable state → encoder → decision head        (value head dropped)
 ```
 
-价值头只在训练时存在，作用是逼编码器把"这张牌值多少"内化进表征，而不是从输入里读。
+The value head exists only during training. Its job is to force the encoder to internalize card utility rather than read it off an input feature.
 
-> 注意这与 **PerfectDou**（arXiv:2203.16406）的"完美信息蒸馏"不同。PerfectDou 的特权信息是对手手牌——客观存在、只是被隐藏，补的是**可观测性缺口**；我们的特权信息是规则引擎算出来的估值，游戏状态里根本不存在，补的是**知识缺口**。就算把所有牌摊开，网络仍然不知道一张【杀】值几分。
+> This differs from **PerfectDou** (arXiv:2203.16406). PerfectDou's privileged signal is the opponent's hand — information that exists but is hidden, so it closes an *observability* gap. Ours is a scalar valuation computed by a symbolic engine, which exists nowhere in the game state; it closes a *knowledge* gap. Revealing every card would not help: a network still has to learn what a card is worth.
 
-## 目录结构
+## Repository layout
 
 ```
 SGSZero/
 ├── scripts/
-│   └── bot.js          # 无名杀注入脚本：自动托管 + 逐手决策存盘
+│   └── bot.js          # Noname injection: auto-play + per-decision logging
 ├── src/
-│   ├── tok/            # 状态 tokenizer + 词表构建
-│   ├── train/          # 训练 / 数据 / 模型 / 误差分析
-│   └── selfplay/       # 自对弈环境（开发中）
-├── engine/             # 规则引擎：牌堆 / 技能 / 结算 / 斗地主模式
-├── docs/               # 方案文档（训练方案 / 工程落地设计）
-└── data/               # 训练数据（dataset.jsonl）与模型权重
+│   ├── tok/            # State tokenizer + vocabulary builder
+│   ├── train/          # Training / data / model / error analysis
+│   └── selfplay/       # Self-play environment (in progress)
+├── engine/             # Rule engine: deck / skills / resolution / DouDizhu mode
+├── docs/               # Design documents
+└── data/               # Training data and model weights
 ```
 
-## 复现
+## Reproduce
 
 ```bash
-# 重建数据集
+# Rebuild the dataset
 python src/tok/build.py
 
-# 体检 + 自检（过拟合 / mask / 打乱标签）
+# Sanity checks (overfit / mask / shuffled labels)
 python src/train/train.py --check
 python src/train/train.py --quick
 
-# 训练（最佳配置）
+# Train (best configuration)
 python src/train/train.py --d-model 256 --layers 3 --epochs 40 --seed 7
 ```
 
-环境：Python 3.13 + PyTorch 2.11（cu128）。40 epoch 在 RTX 4060 Laptop 上约 70 秒。
+Environment: Python 3.13 + PyTorch 2.11 (cu128). 40 epochs take about 70 seconds on an RTX 4060 Laptop.
 
-## 论文
+## Paper
 
 **SGSzero: Training a Compact Sanguosha Agent via Privileged Rule-Based Supervision**
 Evan Wen · Independent Researcher · [ORCID 0009-0005-7254-8002](https://orcid.org/0009-0005-7254-8002)
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23828678.svg)](https://doi.org/10.5281/zenodo.23828678)
+- **Preprint**: [10.5281/zenodo.23828678](https://doi.org/10.5281/zenodo.23828678) (Zenodo, 2026-10-31)
+- **arXiv**: pending endorsement
+- **PDF**: [paper/main.pdf](paper/main.pdf)
 
-- **预印本**：[10.5281/zenodo.23828678](https://doi.org/10.5281/zenodo.23828678)（Zenodo, 2026-10-31）
-- **arXiv**：待背书
-- **PDF**：[paper/main.pdf](paper/main.pdf)
-
-如果这个工作对你有用，欢迎引用：
+If you find this useful, please cite:
 
 ```bibtex
 @misc{wen2026sgszero,
@@ -128,11 +120,17 @@ Evan Wen · Independent Researcher · [ORCID 0009-0005-7254-8002](https://orcid.
 }
 ```
 
-## 版权声明
+## License
 
-- 无名杀引擎为第三方 GPL-3.0 开源项目（[无名杀 Noname](https://github.com/libnoname/noname)），本项目仅将其作为训练环境使用，不包含引擎本体代码；
-- 本项目代码以 GPL-3.0 协议开源，与无名杀保持一致，避免协议冲突。
+- The Noname engine is a third-party GPL-3.0 project ([libnoname/noname](https://github.com/libnoname/noname)). This repository uses it only as a training environment and does not redistribute the engine.
+- This project's code is released under GPL-3.0, matching the upstream license to avoid conflicts.
+
+## Disclaimer
+
+This is an independent academic project, not affiliated with or endorsed by Yoka Games.
+
+*Sanguosha* (Legends of the Three Kingdoms) is a registered trademark of Yoka Games. This project mentions the game only as a research subject, contains no proprietary game assets, and uses a third-party open-source implementation as its environment.
 
 ---
 
-*从零开始，然后赢下第一局。*
+*Start from zero, then win the first game.*
