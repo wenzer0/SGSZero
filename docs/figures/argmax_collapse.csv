@@ -1,0 +1,5 @@
+config,win_rate,win_ci95,turns_median,games,note
+top-1 (argmax),0.44,0.097,60.4,100,"median not reported, mean=60.4 used"
+top-2 (random),0.66,0.093,31,100,
+top-3 (random),0.62,0.095,20,100,
+top-5 (random),0.63,0.095,20,100,
