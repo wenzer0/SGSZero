@@ -34,6 +34,21 @@ A pipeline from collection to deployment:
 3. **Distill** — the rule engine scores every card in hand. Players cannot see those scores, but training uses them to supervise an auxiliary head that is discarded before deployment.
 4. **Deploy** — 1.76M parameters, millisecond inference on CPU.
 
+## Status
+
+| Stage | Result |
+|---|---|
+| v1 — SFT + LUPI | **80.9%** play/pass accuracy ([preprint](https://doi.org/10.5281/zenodo.23828678)) |
+| Stage 1 — diagnosis | **Argmax collapse**: a supervised top-1 policy wins only 44% of games; sampling from a candidate set recovers 62–66% |
+| Stage 2 — DQN RL | v6 **48.0%** vs a hand-written rule AI's 46.7% |
+| Stage 3 — in progress | Full action space → self-play / PFSP → scale |
+
+**The honest reading of Stage 2:** diff −1.3pt, 95% CI [−7.7, +5.1], t = −0.41 — **statistically indistinguishable, not a win over the rule AI**. More importantly, the agent currently controls only **1 of 9** decision interfaces in the engine (`use_phase_action`: which card to play, plus pass). The other eight (responses, saves, wuxie, discards, all `choose_*`) still run the rule AI. **This is an architectural ceiling, not a capability ceiling** — and it is what Stage 3 expands.
+
+See [conclusions and goal statement](docs/results/结论修订与目标说明.md).
+
+> Every win rate in this repo follows the [evaluation protocol](docs/protocol/评估协议-标准.md): paired same-deal runs, argmax, six mandatory fields. The six measurement pitfalls that each invalidated a conclusion along the way are documented [here](docs/protocol/评估协议-六个陷阱.md).
+
 ## Results
 
 Task A: decide whether to play a card or pass at the play phase.
@@ -73,15 +88,22 @@ The value head exists only during training. Its job is to force the encoder to i
 ```
 SGSZero/
 ├── scripts/
-│   └── bot.js          # Noname injection: auto-play + per-decision logging
-├── src/
-│   ├── tok/            # State tokenizer + vocabulary builder
-│   ├── train/          # Training / data / model / error analysis
-│   └── selfplay/       # Self-play environment (in progress)
-├── engine/             # Rule engine: deck / skills / resolution / DouDizhu mode
-├── docs/               # Design documents
-└── data/               # Training data and model weights
+│   └── bot.js              # Noname injection: auto-play + per-decision logging
+├── docs/
+│   ├── README.md           # Documentation index (start here)
+│   ├── results/            # Stage 1 / 2 result logs, kept as-is in time order
+│   ├── protocol/           # Evaluation standard + six pitfalls
+│   ├── figures/            # Two paper figures + reproducible plot scripts
+│   └── *.md                # Early design documents
+├── paper/
+│   ├── main.tex / main.pdf # v1 preprint (Task A + LUPI, 80.9%)
+│   └── v2-outline.md       # v2 outline, NOT the paper; method section outdated
+└── CITATION.cff / LICENSE
 ```
+
+**Known gap:** `src/` (tokenizer, training, evaluation) and `engine/` (ported rule engine) are **not public yet**, so a fresh clone cannot run training. They will be added once the Stage 3 action space stabilizes and the deployment-consistency checks pass — publishing the code now would make it stale within weeks.
+
+The commands below describe the v1 pipeline; the public repo currently ships the data-collection script plus the full set of research documents.
 
 ## Reproduce
 
