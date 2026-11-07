@@ -41,13 +41,18 @@ A pipeline from collection to deployment:
 | v1 — SFT + LUPI | **80.9%** play/pass accuracy ([preprint](https://doi.org/10.5281/zenodo.23828678)) |
 | Stage 1 — diagnosis | **Argmax collapse**: a supervised top-1 policy wins only 44% of games; sampling from a candidate set recovers 62–66% |
 | Stage 2 — DQN RL | v6 **48.0%** vs a hand-written rule AI's 46.7% |
-| Stage 3 — in progress | Full action space → self-play / PFSP → scale |
+| M1b — discard ablation | **Architectural negative result**, closed: three root causes + three reusable assets |
+| M1 — interface screening | Per-interface single-variable route falsified; **goal kept**, implementation moved to be an M2 precondition |
+| M2 — in progress | MC return + minimal self-play loop; framework switch and four implementation defects fixed; **exit criterion (win rate vs the fixed rule anchor rising across generations) not yet met** |
+| M3 — planned | One-shot full action space → self-play / PFSP → scale |
 
-**The honest reading of Stage 2:** diff −1.3pt, 95% CI [−7.7, +5.1], t = −0.41 — **statistically indistinguishable, not a win over the rule AI**. More importantly, the agent currently controls only **1 of 9** decision interfaces in the engine (`use_phase_action`: which card to play, plus pass). The other eight (responses, saves, wuxie, discards, all `choose_*`) still run the rule AI. **This is an architectural ceiling, not a capability ceiling** — and it is what Stage 3 expands.
+**The honest reading of Stage 2:** diff −1.3pt, 95% CI [−7.7, +5.1], t = −0.41 — **statistically indistinguishable, not a win over the rule AI**. The agent controls only **1 of 9** decision interfaces in the engine (`use_phase_action`: which card to play, plus pass); the other eight still run the rule AI. **This is an architectural ceiling, not a capability ceiling.** Screening further showed that the teacher's decisions on those nine interfaces are almost all constants or deterministic hard-coded rules — 48% matches a pile of if-else statements, not a strong policy.
 
-See [conclusions and goal statement](docs/results/结论修订与目标说明.md).
+**The goal has always been a strong Sanguosha AI along the DouZero / AlphaZero route, not delivering a runnable system.** Stage 2's 48% is the starting point, not the finish line.
 
-> Every win rate in this repo follows the [evaluation protocol](docs/protocol/评估协议-标准.md): paired same-deal runs, argmax, six mandatory fields. The six measurement pitfalls that each invalidated a conclusion along the way are documented [here](docs/protocol/评估协议-六个陷阱.md).
+See [conclusions and goal statement (§7 is current)](docs/results/结论修订与目标说明.md) and [R3 §17–27](docs/results/训练结果-阶段2-进步曲线与尺子校准-R3.md).
+
+> Every win rate in this repo follows the [evaluation protocol](docs/protocol/评估协议-标准.md): paired same-deal runs, argmax, six mandatory fields. The measurement pitfalls that each invalidated a conclusion along the way are documented in [six pitfalls](docs/protocol/评估协议-六个陷阱.md) and [stage-2 additions](docs/protocol/评估协议-阶段2补充陷阱.md) — 14 in total.
 
 ## Results
 
@@ -92,16 +97,19 @@ SGSZero/
 ├── docs/
 │   ├── README.md           # Documentation index (start here)
 │   ├── results/            # Stage 1 / 2 result logs, kept as-is in time order
-│   ├── protocol/           # Evaluation standard + six pitfalls
+│   ├── protocol/           # Evaluation standard + 14 pitfalls (6 + 8)
 │   ├── figures/            # Two paper figures + reproducible plot scripts
 │   └── *.md                # Early design documents
 ├── paper/
 │   ├── main.tex / main.pdf # v1 preprint (Task A + LUPI, 80.9%)
-│   └── v2-outline.md       # v2 outline, NOT the paper; method section outdated
+│   ├── v2-methods-outline.md  # v2 CURRENT outline (methodology-first, 2026-11-07)
+│   └── v2-outline.md       # 2026-11-02 historical outline, marked superseded
 └── CITATION.cff / LICENSE
 ```
 
-**Known gap:** `src/` (tokenizer, training, evaluation) and `engine/` (ported rule engine) are **not public yet**, so a fresh clone cannot run training. They will be added once the Stage 3 action space stabilizes and the deployment-consistency checks pass — publishing the code now would make it stale within weeks.
+**Paper status:** v1 is published. v2 is being re-scoped from "we found argmax collapse and fixed it" to "we dissected the phenomenon and provide a reproducible evaluation protocol" — the original story does not survive the final result (statistically indistinguishable from the rule AI, and argmax turns out to be the correct readout). See [v2-methods-outline.md](paper/v2-methods-outline.md) §0.
+
+**Known gap:** `src/` (tokenizer, training, evaluation) and `engine/` (ported rule engine) are **not public yet**, so a fresh clone cannot run training. They will be added once the full action space and the M2 training loop stabilize and the deployment-consistency checks pass — publishing the code now would make it stale within weeks.
 
 The commands below describe the v1 pipeline; the public repo currently ships the data-collection script plus the full set of research documents.
 
