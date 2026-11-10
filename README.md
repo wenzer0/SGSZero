@@ -43,16 +43,19 @@ A pipeline from collection to deployment:
 | Stage 2 — DQN RL | v6 **48.0%** vs a hand-written rule AI's 46.7% |
 | M1b — discard ablation | **Architectural negative result**, closed: three root causes + three reusable assets |
 | M1 — interface screening | Per-interface single-variable route falsified; **goal kept**, implementation moved to be an M2 precondition |
-| M2 — in progress | MC return + minimal self-play loop; framework switch and four implementation defects fixed; **exit criterion (win rate vs the fixed rule anchor rising across generations) not yet met** |
-| M3 — planned | One-shot full action space → self-play / PFSP → scale |
+| M2 — closed | MC return + minimal self-play loop; **training-level negative result** (exit criterion not met; the four-layer defect sequence is documented) |
+| M3 — closed | Equivalent-candidate folding + two 100k-game runs; **one-stage negative result** (below) |
+| Current | **Changing the signal source within the same environment** (counterfactual search labels, starting from `one_of`); cross-engine evaluation deferred |
 
-**The honest reading of Stage 2:** diff −1.3pt, 95% CI [−7.7, +5.1], t = −0.41 — **statistically indistinguishable, not a win over the rule AI**. The agent controls only **1 of 9** decision interfaces in the engine (`use_phase_action`: which card to play, plus pass); the other eight still run the rule AI. **This is an architectural ceiling, not a capability ceiling.** Screening further showed that the teacher's decisions on those nine interfaces are almost all constants or deterministic hard-coded rules — 48% matches a pile of if-else statements, not a strong policy.
+**The honest reading of Stage 2:** diff −1.3pt, 95% CI [−7.7, +5.1], t = −0.41 — **statistically indistinguishable, not a win over the rule AI**.
+
+**The honest reading of M3:** the folding layer structurally fixed "identical-name candidates are indistinguishable in the encoder representation" (the third occurrence of the same root cause after M1b and M2), yet 35,000 games of training **did not translate into a measurable win-rate gain at the candidate-level decisions**: the paired counterfactual primary readout over 3,000 same-deal pairs gives `+0.4pt, CI ±0.8, upper bound +1.2pt`, i.e. the effect lies within ±1.5pt; the global secondary readout is **inconclusive (precision not reached)**; A/A 0/300 is clean. Systematic follow-up ruled out "change the evaluation target", "change the training algorithm", and "change the environment scale", converging on **changing the signal source within the same environment**. The 100k-game series is stopped and will not be resumed. **This is a negative result for one stage of training, not a directional failure, and not evidence that "the model learned nothing".** Full chain: [M3 results](docs/results/训练结果-M3-折叠层与信号密度诊断链.md). The agent controls only **1 of 9** decision interfaces in the engine (`use_phase_action`: which card to play, plus pass); the other eight still run the rule AI. **This is an architectural ceiling, not a capability ceiling.** Screening further showed that the teacher's decisions on those nine interfaces are almost all constants or deterministic hard-coded rules — 48% matches a pile of if-else statements, not a strong policy.
 
 **The goal has always been a strong Sanguosha AI along the DouZero / AlphaZero route, not delivering a runnable system.** Stage 2's 48% is the starting point, not the finish line.
 
-See [conclusions and goal statement (§7 is current)](docs/results/结论修订与目标说明.md) and [R3 §17–27](docs/results/训练结果-阶段2-进步曲线与尺子校准-R3.md).
+See [conclusions and goal statement (§8 is current)](docs/results/结论修订与目标说明.md), [R3 §17–27](docs/results/训练结果-阶段2-进步曲线与尺子校准-R3.md), and the [M3 folding-layer and signal-density diagnostic chain](docs/results/训练结果-M3-折叠层与信号密度诊断链.md).
 
-> Every win rate in this repo follows the [evaluation protocol](docs/protocol/评估协议-标准.md): paired same-deal runs, argmax, six mandatory fields. The measurement pitfalls that each invalidated a conclusion along the way are documented in [six pitfalls](docs/protocol/评估协议-六个陷阱.md) and [stage-2 additions](docs/protocol/评估协议-阶段2补充陷阱.md) — 14 in total.
+> Every win rate in this repo follows the [evaluation protocol](docs/protocol/评估协议-标准.md): paired same-deal runs, argmax, six mandatory fields, A/A check. **27** measurement pitfalls have been caught, each of which once invalidated a conclusion: 14 from Stage 2 ([six pitfalls](docs/protocol/评估协议-六个陷阱.md) + [stage-2 additions](docs/protocol/评估协议-阶段2补充陷阱.md)) and 13 new ones from M3 ([§7 of the M3 results](docs/results/训练结果-M3-折叠层与信号密度诊断链.md)).
 
 ## Results
 
@@ -96,20 +99,20 @@ SGSZero/
 │   └── bot.js              # Noname injection: auto-play + per-decision logging
 ├── docs/
 │   ├── README.md           # Documentation index (start here)
-│   ├── results/            # Stage 1 / 2 result logs, kept as-is in time order
-│   ├── protocol/           # Evaluation standard + 14 pitfalls (6 + 8)
+│   ├── results/            # Stage 1 / 2 / M3 result logs, kept as-is in time order
+│   ├── protocol/           # Evaluation standard + 14 Stage-2 pitfalls (6 + 8)
 │   ├── figures/            # Two paper figures + reproducible plot scripts
 │   └── *.md                # Early design documents
 ├── paper/
 │   ├── main.tex / main.pdf # v1 preprint (Task A + LUPI, 80.9%)
-│   ├── v2-methods-outline.md  # v2 CURRENT outline (methodology-first, 2026-11-07)
+│   ├── v2-methods-outline.md  # v2 CURRENT outline (methodology-first, updated 2026-11-10)
 │   └── v2-outline.md       # 2026-11-02 historical outline, marked superseded
 └── CITATION.cff / LICENSE
 ```
 
-**Paper status:** v1 is published. v2 is being re-scoped from "we found argmax collapse and fixed it" to "we dissected the phenomenon and provide a reproducible evaluation protocol" — the original story does not survive the final result (statistically indistinguishable from the rule AI, and argmax turns out to be the correct readout). See [v2-methods-outline.md](paper/v2-methods-outline.md) §0.
+**Paper status:** v1 is published. v2 has been re-scoped from "we found argmax collapse and fixed it" to "we dissected the phenomenon, provide a reproducible evaluation protocol, report a batch of architectural negative results, and document equivalent-candidate folding with a signal-density diagnostic chain". The original story does not survive the final result. §0 of the outline originally claimed independence from M2/M3 outcomes; both stages are now closed, so that claim can be cashed in: **what v2 can deliver today is a methodology / negative-results paper, not a "we trained a stronger AI" paper.** See [v2-methods-outline.md](paper/v2-methods-outline.md) §0.
 
-**Known gap:** `src/` (tokenizer, training, evaluation) and `engine/` (ported rule engine) are **not public yet**, so a fresh clone cannot run training. They will be added once the full action space and the M2 training loop stabilize and the deployment-consistency checks pass — publishing the code now would make it stale within weeks.
+**Known gap:** `src/` (tokenizer, training, evaluation) and `engine/` (ported rule engine) are **not public yet**, so a fresh clone cannot run training. They will be added once the training objective stabilizes and deployment-consistency checks pass — the current direction has moved from "change the training objective" to "change the signal source", so publishing the code now would make it stale within weeks.
 
 The commands below describe the v1 pipeline; the public repo currently ships the data-collection script plus the full set of research documents.
 
